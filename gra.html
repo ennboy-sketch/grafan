@@ -252,10 +252,10 @@ function setHeroName(state,value){const name=normalizeHeroName(value);if(!validH
 function heroDisplayName(state){return state.heroName||'Nieznany przybysz';}
 
 const MONSTERS={
- wolf:{mapId:'world',name:'Leśny wilk',hp:24,attack:5,xp:15,gold:3,avatar:'wolf',category:'Bestia'},
- boar:{mapId:'world',name:'Dzik',hp:32,attack:6,xp:20,gold:5,avatar:'boar',category:'Bestia'},
- pony:{mapId:'world',name:'Bojowy Kuc',hp:40,attack:7,xp:25,gold:7,avatar:'pony',category:'Bestia'},
- spider:{mapId:'world',name:'Mały Pająk',hp:18,attack:4,xp:10,gold:2,avatar:'spider',category:'Bestia'},
+ wolf:{mapId:'world',name:'Leśny wilk',level:2,hp:24,attack:5,xp:15,gold:3,avatar:'wolf',category:'Bestia'},
+ boar:{mapId:'world',name:'Dzik',level:1,hp:32,attack:6,xp:20,gold:5,avatar:'boar',category:'Bestia'},
+ pony:{mapId:'world',name:'Bojowy Kuc',level:5,hp:40,attack:7,xp:25,gold:7,avatar:'pony',category:'Bestia'},
+ spider:{mapId:'world',name:'Mały Pająk',level:1,hp:18,attack:4,xp:10,gold:2,avatar:'spider',category:'Bestia'},
  darkElf:{mapId:'dark-forest',name:'Mroczny elf',level:10,hp:120,minDamage:25,maxDamage:50,xp:50,gold:25,avatar:'darkElf',category:'Mroczny elf'},
  darkElfArcher:{mapId:'dark-forest',name:'Mroczny elf Łucznik',level:10,hp:120,minDamage:25,maxDamage:50,xp:50,gold:25,avatar:'darkElfArcher',category:'Mroczny elf'}
 };
@@ -544,7 +544,7 @@ function fightView(){
   const content=document.createElement('div');content.id='battle-content';
   content.innerHTML='<div class="combatants"><section class="combatant hero-combatant"><span class="combatant-side">TWÓJ BOHATER</span><img id="battle-hero-avatar" alt=""><h3 id="battle-hero-name"></h3><span id="battle-hero-class"></span><label id="battle-hero-hp-label"></label><div class="battle-hp"><i id="battle-hero-hp"></i></div><label id="battle-hero-pm-label"></label><div class="battle-hp battle-pm"><i id="battle-hero-pm"></i></div></section><div class="battle-versus"><span>VS</span><small id="battle-round"></small></div><section class="combatant enemy-combatant"><span class="combatant-side">PRZECIWNIK</span><img id="battle-enemy-avatar" alt="Leśny wilk"><h3 id="battle-enemy-name"></h3><span id="battle-enemy-category"></span><label id="battle-enemy-hp-label"></label><div class="battle-hp"><i id="battle-enemy-hp"></i></div></section></div><section class="battle-report"><div class="report-heading">Przebieg starcia <span id="battle-outcome"></span></div><div id="battle-history" role="log" aria-live="polite"></div></section>';
   $('dialog-actions').before(content);
-  $('battle-hero-avatar').src=AVATARS[state.classId];$('battle-hero-avatar').alt='Portret: '+cls.name;$('battle-enemy-avatar').src=AVATARS[enemy.avatar];$('battle-enemy-avatar').alt=enemy.name;$('battle-enemy-name').textContent=enemy.name;$('battle-enemy-category').textContent=enemy.category+(enemy.level?' · Poziom '+enemy.level+' · Atak '+enemy.minDamage+'–'+enemy.maxDamage:'')+' · '+(enemy.mapId==='dark-forest'?'Mroczny las':'Pogranicze Brzeziny');
+  $('battle-hero-avatar').src=AVATARS[state.classId];$('battle-hero-avatar').alt='Portret: '+cls.name;$('battle-enemy-avatar').src=AVATARS[enemy.avatar];$('battle-enemy-avatar').alt=enemy.name;$('battle-enemy-name').textContent=enemy.name;$('battle-enemy-category').textContent='Poziom '+enemy.level;
   $('battle-hero-name').textContent=heroDisplayName(state);$('battle-hero-class').textContent=cls.name+' · Poziom '+state.level;
   const heroHp=enemy.outcome==='defeat'?0:state.hp;
   $('battle-hero-hp-label').textContent=heroHp+' / '+state.maxHp+' HP';$('battle-hero-hp').style.width=(100*heroHp/state.maxHp)+'%';
