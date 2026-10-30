@@ -751,7 +751,7 @@ function updateAdventurePanels(){
  rememberWorld();
  for(const id of ['world','expeditions','pet'])$(id+'-open').disabled=!state.classId||!state.heroName;
  $('expeditions-hint').textContent=state.level<15?'Od poziomu 15 · jeszcze '+(15-state.level)+' poz.':state.expedition?'Wyprawa w toku · sprawdź postęp':'Gotowy na wyprawę';
- normalizePets();$('pet-hint').textContent=petCatalog().find(p=>p.id===state.pet?.kind)?.name+' · Twój pupil';if(!state.pet)$('pet-hint').textContent='Kolekcja zwierzaków · '+state.ownedPets.length+'/3';
+ normalizePets();$('pet-hint').textContent=petCatalog().find(p=>p.id===state.pet?.kind)?.name+' · Twój pupil';if(!state.pet)$('pet-hint').textContent='Kolekcja zwierzaków · '+state.ownedPets.length+'/2';
 }
 function adventureWindow(kind,title,text){
  if(!characterPanelAvailable()||$('inventory-dialog')?.open||$('stats-dialog')?.open)return null;
@@ -776,46 +776,51 @@ function expeditionsView(){
  if(route&&Number.isFinite(active.endsAt)){
  const p=document.createElement('p');p.className='adventure-note';p.id='expedition-progress';body.append(p);
  const claim=document.createElement('button');claim.textContent='Odbierz '+route.xp+' XP i '+route.gold+' złota';body.append(claim);
- const tick=()=>{const left=Math.max(0,Math.ceil((active.endsAt-Date.now())/1000));p.textContent=route.name+(left?' · pozostało '+Math.floor(left/60)+' min '+left%60+' s':' · ukończono!');claim.disabled=left>0;};tick();const rewardPet=petCatalog().find(p=>p.route===route.id);if(rewardPet&&!state.ownedPets?.includes(rewardPet.id)){const note=document.createElement('p');note.className='adventure-note';note.textContent='Dodatkowa nagroda: '+rewardPet.name+'.';body.append(note);}
+ const tick=()=>{const left=Math.max(0,Math.ceil((active.endsAt-Date.now())/1000));p.textContent=route.name+(left?' · pozostało '+Math.floor(left/60)+' min '+left%60+' s':' · ukończono!');claim.disabled=left>0;};tick();const note=document.createElement('p');note.className='adventure-note';note.textContent=active.petName?'Pomocnik: '+active.petName+' · czas krótszy o '+active.timeReduction+'%.':'Wyprawa bez pomocy zwierzaka.';body.append(note);
  const timer=setInterval(()=>{if(!p.isConnected||!$('dialog').open){clearInterval(timer);return;}tick();},1000);
- claim.onclick=()=>{if(state.level<15||state.expedition!==active||Date.now()<active.endsAt)return;state.expedition=null;const petReward=awardExpeditionPet(route.id);state.gold+=route.gold;gainXP(route.xp);log('Ukończono wyprawę: '+route.name+'. +'+route.xp+' XP, +'+route.gold+' złota.'+(petReward?' Nowy zwierzak: '+petReward.name+'! Wybierz go w oknie Zwierzak.':''));save();render();close();expeditionsView();};return;
+ claim.onclick=()=>{if(state.level<15||state.expedition!==active||Date.now()<active.endsAt)return;state.expedition=null;state.gold+=route.gold;gainXP(route.xp);log('Ukończono wyprawę: '+route.name+'. +'+route.xp+' XP, +'+route.gold+' złota.');save();render();close();expeditionsView();};return;
  }
  for(const route of expeditionRoutes()){
- const card=document.createElement('section');card.className='expedition-card';const h=document.createElement('h3');h.textContent=route.name;const p=document.createElement('p');p.textContent=route.minutes+' min · Nagroda: '+route.xp+' XP i '+route.gold+' złota';const rewardPet=petCatalog().find(pet=>pet.route===route.id);if(rewardPet&&!state.ownedPets?.includes(rewardPet.id))p.textContent+=' · Zwierzak: '+rewardPet.name;const b=document.createElement('button');b.textContent='Rozpocznij wyprawę';b.prepend(rpgIcon('scroll'));b.onclick=()=>{if(state.level<15||state.expedition)return;state.expedition={id:route.id,endsAt:Date.now()+route.minutes*60000};save();render();close();expeditionsView();};card.append(h,p,b);body.append(card);
+ const helper=expeditionHelper(),duration=expeditionDuration(route,helper),card=document.createElement('section');card.className='expedition-card';
+ const h=document.createElement('h3');h.textContent=route.name;
+ const p=document.createElement('p');p.textContent=formatExpeditionDuration(duration)+' · Nagroda: '+route.xp+' XP i '+route.gold+' złota';
+ const help=document.createElement('p');help.textContent=helper?'Pomocnik: '+helper.name+' · czas krótszy o '+helper.timeReduction+'% (zamiast '+route.minutes+' min).':'Bez zwierzaka: standardowy czas wyprawy. Posiadany, aktywny zwierzak przyspieszy kolejne wyprawy.';
+ const button=document.createElement('button');button.textContent='Rozpocznij wyprawę';button.prepend(rpgIcon('scroll'));button.onclick=()=>{
+ if(state.level<15||state.expedition)return;
+ const pet=expeditionHelper();state.expedition={id:route.id,endsAt:Date.now()+expeditionDuration(route,pet),petId:pet?.id??null,petName:pet?.name??null,timeReduction:pet?.timeReduction??0};
+ save();render();close();expeditionsView();
+ };card.append(h,p,help,button);body.append(card);
  }
 }
+function expeditionHelper(){normalizePets();return petCatalog().find(p=>p.id===state.pet?.kind&&state.ownedPets.includes(p.id))??null;}
+function expeditionDuration(route,pet){return Math.round(route.minutes*60000*(1-(pet?.timeReduction??0)/100));}
+function formatExpeditionDuration(ms){const seconds=Math.ceil(ms/1000);return Math.floor(seconds/60)+' min'+(seconds%60?' '+seconds%60+' s':'');}
+
 function petCatalog(){return [
- {id:'fox',name:'Leśny lis',description:'Przyjazny mieszkaniec leśnego traktu. Możesz przygarnąć go bezpłatnie.'},
- {id:'battle-pony',name:'Bojowy Kuc',image:'assets/battle-pony.jpg',route:'trail',description:'Dzielny kuc w stalowej zbroi. Zdobywasz go za ukończenie wyprawy „Patrol leśnego traktu”.'},
- {id:'battle-direwolf',name:'Bojowy Wilkor',image:'assets/battle-direwolf.jpg',route:'border',description:'Potężny wilkor w bojowym rynsztunku. Zdobywasz go za ukończenie wyprawy „Zwiad na pograniczu”.'}
+ {id:'battle-pony',name:'Bojowy Kuc',image:'assets/battle-pony.jpg',timeReduction:20,description:'Dzielny kuc w stalowej zbroi. Jako aktywny pomocnik skraca czas nowych wypraw o 20%.'},
+ {id:'battle-direwolf',name:'Bojowy Wilkor',image:'assets/battle-direwolf.jpg',timeReduction:30,description:'Potężny wilkor w bojowym rynsztunku. Jako aktywny pomocnik skraca czas nowych wypraw o 30%.'}
 ];}
 function normalizePets(){
  const ids=petCatalog().map(p=>p.id),owned=Array.isArray(state.ownedPets)?state.ownedPets:[];
- // Preserve a previously adopted fox and the selected companion from older saves.
+ // Keep existing pony/direwolf ownership; remove the retired fox from old saves.
  if(ids.includes(state.pet?.kind))owned.push(state.pet.kind);
  state.ownedPets=[...new Set(owned)].filter(id=>ids.includes(id));
  if(!ids.includes(state.pet?.kind))state.pet=null;
 }
-function awardExpeditionPet(routeId){
- normalizePets();const pet=petCatalog().find(p=>p.route===routeId);if(!pet||state.ownedPets.includes(pet.id))return null;
- state.ownedPets.push(pet.id);if(!state.pet)state.pet={kind:pet.id};return pet;
-}
 function petView(){
- normalizePets();const body=adventureWindow('TOWARZYSZE PODRÓŻY','Zwierzak','Zdobywaj zwierzaki i wybierz aktywnego towarzysza. Kolekcja zapisuje się automatycznie. Zwierzaki towarzyszą Ci w przygodzie bez zmiany statystyk walki.');if(!body)return;
- const summary=document.createElement('p');summary.className='adventure-note';summary.textContent='Kolekcja: '+state.ownedPets.length+'/'+petCatalog().length+' · Aktywny pupil: '+(petCatalog().find(p=>p.id===state.pet?.kind)?.name??'brak');body.append(summary);
+ normalizePets();const body=adventureWindow('POMOCNICY WYPRAW','Zwierzak','Aktywny zwierzak skraca czas wypraw rozpoczynanych z jego pomocą. Bez zwierzaka wyprawy trwają standardowo. Sposób zdobywania zwierzaków zostanie udostępniony później.');if(!body)return;
+ const summary=document.createElement('p');summary.className='adventure-note';summary.textContent='Kolekcja: '+state.ownedPets.length+'/'+petCatalog().length+' · Aktywny pomocnik: '+(petCatalog().find(p=>p.id===state.pet?.kind)?.name??'brak');body.append(summary);
  const grid=document.createElement('div');grid.className='pet-collection';body.append(grid);
  for(const pet of petCatalog()){
  const owned=state.ownedPets.includes(pet.id),active=state.pet?.kind===pet.id,card=document.createElement('section');card.className='pet-card'+(active?' pet-active':'');card.dataset.pet=pet.id;
- if(pet.image){const image=document.createElement('img');image.className='pet-art';image.src=pet.image;image.alt=pet.name+' w zbroi bojowej';image.width=1280;image.height=698;card.append(image);}else{const portrait=document.createElement('div');portrait.className='pet-portrait';portrait.textContent='🦊';portrait.setAttribute('role','img');portrait.setAttribute('aria-label',pet.name);card.append(portrait);}
- const h=document.createElement('h3');h.textContent=pet.name;const status=document.createElement('p');status.className='pet-status';status.textContent=active?'Aktywny towarzysz':owned?'W Twojej kolekcji':'Do zdobycia';const p=document.createElement('p');p.className='adventure-note';p.textContent=pet.description;card.append(h,status,p);
- const button=document.createElement('button');button.prepend(rpgIcon('paw'));
- button.append(document.createTextNode(active?'Pogłaszcz pupila':owned?'Wybierz towarzysza':pet.id==='fox'?'Zaopiekuj się lisem':'Zdobądź na wyprawie'));
- if(!owned&&pet.route){button.disabled=state.level<15;const hint=document.createElement('p');hint.className='adventure-note';hint.textContent='Gwarantowana nagroda przy odbiorze ukończonej wyprawy. Wyprawy dostępne od poziomu 15.';card.append(hint);}
+ const image=document.createElement('img');image.className='pet-art';image.src=pet.image;image.alt=pet.name+' w zbroi bojowej';image.width=1280;image.height=698;card.append(image);
+ const h=document.createElement('h3');h.textContent=pet.name;const status=document.createElement('p');status.className='pet-status';status.textContent=active?'Aktywny pomocnik':owned?'W Twojej kolekcji':'Zdobywanie wkrótce';
+ const p=document.createElement('p');p.className='adventure-note';p.textContent=pet.description;card.append(h,status,p);
+ const button=document.createElement('button');button.prepend(rpgIcon('paw'));button.append(document.createTextNode(active?'Pogłaszcz pupila':owned?'Wybierz pomocnika':'Zdobywanie wkrótce'));button.disabled=!owned;
  button.onclick=()=>{
-  if(!owned&&pet.route){close();expeditionsView();return;}
-  if(active){p.textContent=pet.id==='fox'?'Lis radośnie macha ogonem i wtula się w Twoją dłoń.':pet.id==='battle-pony'?'Kuc radośnie parska i trąca Cię chrapami.':'Wilkor przyjaźnie macha ogonem i pochyla opancerzony łeb.';return;}
-  normalizePets();if(!state.ownedPets.includes(pet.id)){if(pet.id!=='fox')return;state.ownedPets.push(pet.id);}
-  state.pet={kind:pet.id};save();render();close();petView();
+ normalizePets();if(!state.ownedPets.includes(pet.id))return;
+ if(active){p.textContent=pet.id==='battle-pony'?'Kuc radośnie parska i trąca Cię chrapami.':'Wilkor przyjaźnie macha ogonem i pochyla opancerzony łeb.';return;}
+ state.pet={kind:pet.id};save();render();close();petView();
  };card.append(button);grid.append(card);
  }
 }
