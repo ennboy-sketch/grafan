@@ -770,9 +770,9 @@ function worldView(){
  save();
 }
 function expeditionRoutes(){return [
- {id:'forest-scout',name:'Zwiad w Lesie',minLevel:15,minutes:1,xp:40,gold:15},
- {id:'thunder-mountains',name:'Problemy Gromistych Gór',minLevel:25,minutes:3,xp:100,gold:35},
- {id:'faellan-wasteland',name:'Pustkowie Faellana',minLevel:35,minutes:5,xp:180,gold:60}
+ {id:'forest-scout',name:'Zwiad w Lesie',minLevel:15,minutes:5,xp:40,gold:15},
+ {id:'thunder-mountains',name:'Problemy Gromistych Gór',minLevel:25,minutes:15,xp:100,gold:35},
+ {id:'faellan-wasteland',name:'Pustkowie Faellana',minLevel:35,minutes:25,xp:180,gold:60}
 ];}
 function normalizeExpedition(){
  if(state.expedition&&(!expeditionRoutes().some(route=>route.id===state.expedition.id)||!Number.isFinite(state.expedition.endsAt))){
