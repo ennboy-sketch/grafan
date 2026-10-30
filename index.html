@@ -307,9 +307,9 @@ const MONSTERS={
  boar:{mapId:'world',name:'Dzik',level:1,hp:57,attack:16,xp:30,gold:5,avatar:'boar',category:'Bestia'},
  pony:{mapId:'world',name:'Bojowy Kuc',level:5,hp:65,attack:17,xp:35,gold:7,avatar:'pony',category:'Bestia'},
  spider:{mapId:'world',name:'Mały Pająk',level:1,hp:43,attack:14,xp:20,gold:2,avatar:'spider',category:'Bestia'},
- darkElf:{mapId:'dark-forest',name:'Mroczny elf',level:10,hp:145,minDamage:35,maxDamage:60,xp:60,gold:25,avatar:'darkElf',category:'Mroczny elf'},
- darkElfArcher:{mapId:'dark-forest',name:'Mroczny elf Łucznik',level:10,hp:145,minDamage:35,maxDamage:60,xp:60,gold:25,avatar:'darkElfArcher',category:'Mroczny elf'},
- poisonSpider:{mapId:'dark-forest',name:'Trujący pająk',level:12,hp:165,minDamage:35,maxDamage:60,poisonOnBite:5,xp:76,gold:35,avatar:'poisonSpider',category:'Bestia'}
+ darkElf:{mapId:'dark-forest',name:'Mroczny elf',level:10,hp:145,minDamage:35,maxDamage:60,defenseThreshold:30,xp:60,gold:25,avatar:'darkElf',category:'Mroczny elf'},
+ darkElfArcher:{mapId:'dark-forest',name:'Mroczny elf Łucznik',level:10,hp:145,minDamage:35,maxDamage:60,defenseThreshold:30,xp:60,gold:25,avatar:'darkElfArcher',category:'Mroczny elf'},
+ poisonSpider:{mapId:'dark-forest',name:'Trujący pająk',level:12,hp:165,minDamage:35,maxDamage:60,defenseThreshold:30,poisonOnBite:5,xp:76,gold:35,avatar:'poisonSpider',category:'Bestia'}
 };
 const POPULATION={bandit:8,bandit2:8,wolf:6,boar:3,pony:3,spider:3,darkElf:8,darkElfArcher:8,poisonSpider:6};
 // Each population has its own reachable habitat and safe landmark areas.
@@ -658,7 +658,7 @@ function fightView(){
   const bar=document.createElement('div');bar.className='battle-hp';const fill=document.createElement('i');fill.style.width=(100*member.hp/member.maxHp)+'%';bar.append(fill);
   const status=document.createElement('span');status.className='target-state';
   if(index===0){img.id='battle-enemy-avatar';name.id='battle-enemy-name';level.id='battle-enemy-category';hp.id='battle-enemy-hp-label';fill.id='battle-enemy-hp';}
-  card.append(side,img,name,level);if(member.defenseThreshold){const trait=document.createElement('span');trait.className='enemy-damage-note';trait.textContent=member.minDamage+' obrażeń · redukcja od '+member.defenseThreshold+' obrony';card.append(trait);}card.append(hp,bar,status);card.onclick=()=>{if(selectBattleTarget(enemy,member.id))renderTargetSelection();};team.append(card);
+  card.append(side,img,name,level);if(member.defenseThreshold){const trait=document.createElement('span');trait.className='enemy-damage-note';trait.textContent=(member.minDamage===member.maxDamage?member.minDamage:member.minDamage+'–'+member.maxDamage)+' obrażeń · redukcja od '+member.defenseThreshold+' obrony';card.append(trait);}card.append(hp,bar,status);card.onclick=()=>{if(selectBattleTarget(enemy,member.id))renderTargetSelection();};team.append(card);
  }
  renderTargetSelection();
  $('battle-round').textContent='Tura '+enemy.round;$('battle-outcome').textContent=active?'TWÓJ RUCH':'STARCIE ZAKOŃCZONE';
