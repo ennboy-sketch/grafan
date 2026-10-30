@@ -311,7 +311,7 @@ const MONSTERS={
  darkElfArcher:{mapId:'dark-forest',name:'Mroczny elf Łucznik',level:10,hp:145,minDamage:35,maxDamage:60,xp:60,gold:25,avatar:'darkElfArcher',category:'Mroczny elf'},
  poisonSpider:{mapId:'dark-forest',name:'Trujący pająk',level:12,hp:165,minDamage:35,maxDamage:60,poisonOnBite:5,xp:76,gold:35,avatar:'poisonSpider',category:'Bestia'}
 };
-const POPULATION={bandit:3,bandit2:3,wolf:6,boar:3,pony:3,spider:3,darkElf:8,darkElfArcher:8,poisonSpider:6};
+const POPULATION={bandit:8,bandit2:8,wolf:6,boar:3,pony:3,spider:3,darkElf:8,darkElfArcher:8,poisonSpider:6};
 // Each population has its own reachable habitat and safe landmark areas.
 function habitat(mapId){const dark=mapId==='dark-forest',start=mapId==='portal-area'?PORTAL_AREA_ENTRY:dark?DUNGEON_SPAWN:CASTLE,{width,height}=mapSize(mapId),queue=[[start.x,start.y]],seen=new Set([queue[0].join(',')]),result=[];
 for(let i=0;i<queue.length;i++){const [x,y]=queue[i];const distance=p=>Math.max(Math.abs(x-p.x),Math.abs(y-p.y));const safe=mapId==='portal-area'?(distance(PORTAL_AREA_ENTRY)<=1||forestSites().some(site=>distance(site)<=1)):dark?(distance(DUNGEON_SPAWN)<=1||distance(ELF_CASTLE)<=1):(distance(CASTLE)<=2||(x===9&&y===6)||(x===DUNGEON_ENTRANCE.x&&y===DUNGEON_ENTRANCE.y)||(x===BRZEZINA_CHEST.x&&y===BRZEZINA_CHEST.y)||(x===WORLD_PASSAGE.x&&y===WORLD_PASSAGE.y)||(x===WORLD_NEW_PORTAL.x&&y===WORLD_NEW_PORTAL.y));if(!safe)result.push({x,y});for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,key=nx+','+ny;if(nx>=0&&ny>=0&&nx<width&&ny<height&&walkable(nx,ny,mapId)&&!seen.has(key)){seen.add(key);queue.push([nx,ny]);}}}return result;}
@@ -343,9 +343,9 @@ function battleTarget(battle){const alive=livingOpponents(battle);return alive.f
 function selectBattleTarget(battle,id){if(battle?.outcome!=='active'||!livingOpponents(battle).some(member=>member.id===id))return false;battle.targetId=id;return true;}
 function battleRewards(battle){return battleMembers(battle).reduce((total,member)=>({xp:total.xp+member.xp,gold:total.gold+member.gold}),{xp:0,gold:0});}
 function createBattleGroup(state,first,rng=Math.random){
- if(!first||!MONSTERS[first.type]||first.mapId!==(state.mapId??'world'))return null;
- const roll=rng(),size=roll<.5?1:roll<.8?2:3;
- const entries=[first],pool=state.encounters.filter(e=>e.mapId===first.mapId&&e.id!==first.id);
+ if(!first||!MONSTERS[first.type]||MONSTERS[first.type].mapId!==first.mapId||first.mapId!==(state.mapId??'world'))return null;
+ const roll=rng(),size=first.mapId==='portal-area'?(roll<.5?2:3):(roll<.5?1:roll<.8?2:3);
+ const entries=[first],pool=state.encounters.filter(e=>e.mapId===first.mapId&&MONSTERS[e.type]?.mapId===first.mapId&&e.id!==first.id);
  while(entries.length<size&&pool.length){const index=Math.min(pool.length-1,Math.max(0,Math.floor(rng()*pool.length)));entries.push(pool.splice(index,1)[0]);}
  const members=entries.map(e=>({...e,...MONSTERS[e.type],hp:MONSTERS[e.type].hp,maxHp:MONSTERS[e.type].hp,outcome:'active'}));
  const group={members,mapId:first.mapId,targetId:members[0].id,round:1,outcome:'active',poisonDamage:0,history:['Zasadzka! Przeciwnicy ('+members.length+'): '+members.map(e=>e.name).join(', ')+'.']};recordExpeditionEncounter(state,group);return group;
@@ -803,7 +803,7 @@ function forestStory(){
 function forestDescription(){
  const site=forestSiteAt(state);if(site)return site.name+' · '+(site.id==='shore'?'Mała złota gwiazdka wskazuje miejsce badania. ':'')+(forestStory().stage===3&&site.id==='oak'?'W korzeniach dębu czeka pęknięta pieczęć. Mira wyjaśniła już, jak ją odtworzyć.':'Zatrzymaj się i zbadaj to miejsce.');
  if(locationAction(state)==='return-portal-area')return 'Portal na południowym skraju lasu prowadzi z powrotem do Brzeziny na [17:8].';
- return forestStory().stage>=4?'Las odzyskuje spokój. W szumie liści słychać już tylko wiatr. Trakt łączy obozowisko, staw i stary dąb. Poza polanami nadal grasują rozbójnicy.':'Wysokie korony tłumią światło. Trakt prowadzi przez opuszczone obozowisko do cichego stawu i starego dębu. Szepty narastają przy oznaczonych polanach. Na leśnych ścieżkach czają się rozbójnicy poziomów 9 i 10.';
+ return forestStory().stage>=4?'Las odzyskuje spokój. W szumie liści słychać już tylko wiatr. Trakt łączy obozowisko, staw i stary dąb. Poza polanami nadal grasują rozbójnicy w grupach po 2 lub 3.':'Wysokie korony tłumią światło. Trakt prowadzi przez opuszczone obozowisko do cichego stawu i starego dębu. Szepty narastają przy oznaczonych polanach. Na leśnych ścieżkach czają się rozbójnicy poziomów 9 i 10. Napadają w grupach po 2 lub 3.';
 }
 function forestStoryTalk(n){
  if(state.quest!==3)return false;const story=forestStory();
