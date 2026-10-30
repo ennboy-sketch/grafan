@@ -748,7 +748,7 @@ function rememberWorld(){
  state.visitedMaps=[...new Set(['world',...(Array.isArray(state.visitedMaps)?state.visitedMaps:[]),state.mapId??'world'])].filter(id=>known.includes(id));
 }
 function updateAdventurePanels(){
- rememberWorld();
+ rememberWorld();normalizeExpedition();
  for(const id of ['world','expeditions','pet'])$(id+'-open').disabled=!state.classId||!state.heroName;
  $('expeditions-hint').textContent=state.level<15?'Od poziomu 15 · jeszcze '+(15-state.level)+' poz.':state.expedition?'Wyprawa w toku · sprawdź postęp':'Gotowy na wyprawę';
  normalizePets();$('pet-hint').textContent=petCatalog().find(p=>p.id===state.pet?.kind)?.name+' · Twój pupil';if(!state.pet)$('pet-hint').textContent='Kolekcja zwierzaków · '+state.ownedPets.length+'/2';
@@ -769,27 +769,36 @@ function worldView(){
  }
  save();
 }
-function expeditionRoutes(){return [{id:'trail',name:'Patrol leśnego traktu',minutes:1,xp:40,gold:15},{id:'ruins',name:'Poszukiwania w ruinach',minutes:3,xp:100,gold:35},{id:'border',name:'Zwiad na pograniczu',minutes:5,xp:180,gold:60}];}
+function expeditionRoutes(){return [
+ {id:'forest-scout',name:'Zwiad w Lesie',minLevel:15,minutes:1,xp:40,gold:15},
+ {id:'thunder-mountains',name:'Problemy Gromistych Gór',minLevel:25,minutes:3,xp:100,gold:35},
+ {id:'faellan-wasteland',name:'Pustkowie Faellana',minLevel:35,minutes:5,xp:180,gold:60}
+];}
+function normalizeExpedition(){
+ if(state.expedition&&(!expeditionRoutes().some(route=>route.id===state.expedition.id)||!Number.isFinite(state.expedition.endsAt))){
+ state.expedition=null;log('Poprzednia wyprawa została wycofana. Wybierz jedną z nowych wypraw.');save();
+ }
+}
 function expeditionsView(){
- const body=adventureWindow('WYPRAWY · POZIOM 15','Wyprawy',state.level<15?'Wyprawy odblokują się po osiągnięciu poziomu 15. Twój poziom: '+state.level+'.':'Wybierz wyprawę. Możesz dalej zwiedzać świat; po upływie czasu wróć tutaj po nagrodę. Jednocześnie trwa jedna wyprawa.');if(!body||state.level<15)return;
- const active=state.expedition,route=expeditionRoutes().find(r=>r.id===active?.id);
+ const body=adventureWindow('WYPRAWY · POZIOM 15','Wyprawy',state.level<15?'Wyprawy odblokują się po osiągnięciu poziomu 15. Twój poziom: '+state.level+'.':'Wybierz wyprawę. Możesz dalej zwiedzać świat; po upływie czasu wróć tutaj po nagrodę. Jednocześnie trwa jedna wyprawa.');if(!body)return;
+ normalizeExpedition();const active=state.expedition,route=expeditionRoutes().find(r=>r.id===active?.id);
  if(route&&Number.isFinite(active.endsAt)){
  const p=document.createElement('p');p.className='adventure-note';p.id='expedition-progress';body.append(p);
  const claim=document.createElement('button');claim.textContent='Odbierz '+route.xp+' XP i '+route.gold+' złota';body.append(claim);
  const tick=()=>{const left=Math.max(0,Math.ceil((active.endsAt-Date.now())/1000));p.textContent=route.name+(left?' · pozostało '+Math.floor(left/60)+' min '+left%60+' s':' · ukończono!');claim.disabled=left>0;};tick();const note=document.createElement('p');note.className='adventure-note';note.textContent=active.petName?'Pomocnik: '+active.petName+' · czas krótszy o '+active.timeReduction+'%.':'Wyprawa bez pomocy zwierzaka.';body.append(note);
  const timer=setInterval(()=>{if(!p.isConnected||!$('dialog').open){clearInterval(timer);return;}tick();},1000);
- claim.onclick=()=>{if(state.level<15||state.expedition!==active||Date.now()<active.endsAt)return;state.expedition=null;state.gold+=route.gold;gainXP(route.xp);log('Ukończono wyprawę: '+route.name+'. +'+route.xp+' XP, +'+route.gold+' złota.');save();render();close();expeditionsView();};return;
+ claim.onclick=()=>{if(state.level<route.minLevel||state.expedition!==active||Date.now()<active.endsAt)return;state.expedition=null;state.gold+=route.gold;gainXP(route.xp);log('Ukończono wyprawę: '+route.name+'. +'+route.xp+' XP, +'+route.gold+' złota.');save();render();close();expeditionsView();};return;
  }
  for(const route of expeditionRoutes()){
  const helper=expeditionHelper(),duration=expeditionDuration(route,helper),card=document.createElement('section');card.className='expedition-card';
- const h=document.createElement('h3');h.textContent=route.name;
+ const h=document.createElement('h3');h.textContent=route.name;const requirement=document.createElement('p');requirement.className='expedition-requirement';requirement.textContent='Od poziomu '+route.minLevel+(state.level<route.minLevel?' · Twój poziom: '+state.level:' · Dostępna');
  const p=document.createElement('p');p.textContent=formatExpeditionDuration(duration)+' · Nagroda: '+route.xp+' XP i '+route.gold+' złota';
  const help=document.createElement('p');help.textContent=helper?'Pomocnik: '+helper.name+' · czas krótszy o '+helper.timeReduction+'% (zamiast '+route.minutes+' min).':'Bez zwierzaka: standardowy czas wyprawy. Posiadany, aktywny zwierzak przyspieszy kolejne wyprawy.';
- const button=document.createElement('button');button.textContent='Rozpocznij wyprawę';button.prepend(rpgIcon('scroll'));button.onclick=()=>{
- if(state.level<15||state.expedition)return;
+ const button=document.createElement('button');button.textContent=state.level<route.minLevel?'Wymagany poziom '+route.minLevel:'Rozpocznij wyprawę';button.disabled=state.level<route.minLevel;button.prepend(rpgIcon('scroll'));button.onclick=()=>{
+ if(state.level<route.minLevel||state.expedition)return;
  const pet=expeditionHelper();state.expedition={id:route.id,endsAt:Date.now()+expeditionDuration(route,pet),petId:pet?.id??null,petName:pet?.name??null,timeReduction:pet?.timeReduction??0};
  save();render();close();expeditionsView();
- };card.append(h,p,help,button);body.append(card);
+ };card.append(h,requirement,p,help,button);body.append(card);
  }
 }
 function expeditionHelper(){normalizePets();return petCatalog().find(p=>p.id===state.pet?.kind&&state.ownedPets.includes(p.id))??null;}
