@@ -425,7 +425,7 @@ const gx=M+(gate.x-cam.x)*T,gy=M+(gate.y-cam.y)*T;
 oval(gx+24,gy+43,18,4,'#0a1515aa');if(portalArtwork.complete&&portalArtwork.naturalWidth){const scale=Math.min(46/portalArtwork.naturalWidth,46/portalArtwork.naturalHeight),pw=portalArtwork.naturalWidth*scale,ph=portalArtwork.naturalHeight*scale;c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(portalArtwork,gx+24-pw/2,gy+24-ph/2,pw,ph);c.restore();}else{oval(gx+24,gy+24,17,21,'#729bba');oval(gx+24,gy+24,13,17,'#695399');}
 
 }
-if(state.mapId==='portal-area'){for(const site of forestSites()){const x=M+(site.x-cam.x)*T,y=M+(site.y-cam.y)*T;if(site.id==='oak'){tree(x,y,site.x,site.y);}else if(site.id==='camp'){box(x+10,y+27,28,13,'#725435');poly([[x+6,y+28],[x+24,y+8],[x+42,y+28]],'#a28d58');box(x+19,y+28,10,12,'#253025');}if(site.id==='shore'){c.save();const points=Array.from({length:10},(_,i)=>{const angle=-Math.PI/2+i*Math.PI/5,radius=i%2?3:7;return [x+24+Math.cos(angle)*radius,y+22+Math.sin(angle)*radius];});poly(points,'#ffe18a');c.strokeStyle='#493a1b';c.lineWidth=1.5;c.stroke();c.restore();continue;}c.fillStyle='#e8d18c';c.font='bold 15px Georgia';c.fillText('◇',x+24,y+5);}}
+if(state.mapId==='portal-area'){for(const site of forestSites()){const x=M+(site.x-cam.x)*T,y=M+(site.y-cam.y)*T;if(site.id==='oak'){tree(x,y,site.x,site.y);}else if(site.id==='camp'){if(forestCampArtwork.complete&&forestCampArtwork.naturalWidth){c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(forestCampArtwork,290,200,960,640,x-9,y+2,66,44);c.restore();}else{box(x+10,y+27,28,13,'#725435');poly([[x+6,y+28],[x+24,y+8],[x+42,y+28]],'#a28d58');box(x+19,y+28,10,12,'#253025');}}if(site.id==='shore'){c.save();const points=Array.from({length:10},(_,i)=>{const angle=-Math.PI/2+i*Math.PI/5,radius=i%2?3:7;return [x+24+Math.cos(angle)*radius,y+22+Math.sin(angle)*radius];});poly(points,'#ffe18a');c.strokeStyle='#493a1b';c.lineWidth=1.5;c.stroke();c.restore();continue;}c.fillStyle='#e8d18c';c.font='bold 15px Georgia';c.fillText('◇',x+24,y+5);}}
 const hx=M+((visual?.x??state.x)-cam.x)*T,hy=M+((visual?.y??state.y)-cam.y)*T;sprite(hx,hy,CLASSES[state.classId]?.color??'#bc9c63',true);
 if(!visual)for(const [dx,dy]of [[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0]]){if(!canStep(state.x,state.y,dx,dy,state.mapId))continue;const x=hx+24+dx*36,y=hy+24+dy*36,len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len,points=[[x+ux*6,y+uy*6],[x-ux*4-uy*6,y-uy*4+ux*6],[x-ux*4+uy*6,y-uy*4-ux*6]];poly(points,'#1c3925');c.strokeStyle='#ffecb0';c.lineWidth=1;c.stroke();}
 c.restore();c.font='10px monospace';c.textAlign='center';c.fillStyle='#b9c69b';for(let i=0;i<8;i++){const x=Math.floor(cam.x)+i,y=Math.floor(cam.y)+i;c.fillText(String(x),M+(x-cam.x)*T+24,15);c.fillText(String(y),11,M+(y-cam.y)*T+28);}
@@ -577,6 +577,7 @@ function createStatsUI({getState,avatars,canOpen,onChange}) {
   return {open,close,render};
 }
 
+const forestCampArtwork=new Image();forestCampArtwork.src='assets/whispering-camp.png';
 const $=id=>document.getElementById(id),canvas=$('map'),ctx=canvas.getContext('2d'),S=48;
 let state=initialState(),enemy=null,notice='',motion=null,queuedMove=null;
 try{const saved=migrateSave(JSON.parse(localStorage.getItem('grafan-save-v1')));if(validState(saved))state=saved;}catch{notice='Nie udało się odczytać zapisu. Rozpoczynasz nową przygodę.';}
@@ -812,7 +813,7 @@ function forestStoryTalk(n){
 function forestInteract(){
  const site=forestSiteAt(state);if(!site)return;const story=forestStory();
  if(site.id==='oak'&&story.stage===3){modal('SZEPTAJĄCY LAS · STARY DĄB','Pęknięta pieczęć','Korzenie rozchylają się wokół starego znaku. Powtarzasz rytm, którego nauczyła cię Mira. Głosy urywają się na chwilę — las czeka na ostatni gest.',[['Odtwórz pieczęć',()=>{if(forestStory().stage!==3)return;state.forestStory.stage=4;log('Pieczęć pod starym dębem została odtworzona. Wróć do Aldrena po nagrodę.');close();}],['Odejdź od dębu',close]]);return;}
- const texts={camp:'Ognisko wystygło, lecz kubki stoją równo przy płachcie namiotu. W błocie widzisz ślady butów, nie pazurów. Zwiadowcy poszli ku stawowi. Na korze pozostawili trzy krótkie nacięcia.',shore:'W tafli stawu nie odbija się twoja twarz, lecz korona wielkiego dębu. Spod wody dobiegają trzy stłumione uderzenia. Na brzegu te same nacięcia układają się w rytm: krótki, krótki, długi.',oak:'Pod starym dębem znajdujesz wyłamany fragment ochronnego kręgu. W korze ktoś wyciął znak obcy leśnym strażnikom. Szepty powtarzają imiona zwiadowców, jakby szukały drogi przez portal.'};
+ const texts={camp:'Ognisko jeszcze się żarzy, lecz kubki stoją równo przy płachcie namiotu. W błocie widzisz ślady butów, nie pazurów. Zwiadowcy poszli ku stawowi. Na korze pozostawili trzy krótkie nacięcia.',shore:'W tafli stawu nie odbija się twoja twarz, lecz korona wielkiego dębu. Spod wody dobiegają trzy stłumione uderzenia. Na brzegu te same nacięcia układają się w rytm: krótki, krótki, długi.',oak:'Pod starym dębem znajdujesz wyłamany fragment ochronnego kręgu. W korze ktoś wyciął znak obcy leśnym strażnikom. Szepty powtarzają imiona zwiadowców, jakby szukały drogi przez portal.'};
  modal('SZEPTAJĄCY LAS',site.name,texts[site.id]+(state.quest!==3||story.stage===0?' Odkrycie może zainteresować Aldrena. Najpierw porozmawiaj z nim w strażnicy.':''),[['Wróć na ścieżkę',close]]);
  if(story.stage===1&&!story.clues.includes(site.id)){story.clues.push(site.id);if(story.clues.length===3)story.stage=2;state.forestStory=story;log('Zbadano: '+site.name+'.'+(story.stage===2?' Masz trzy ślady. Wróć do Miry.':''));save();render();}
 }
@@ -1001,4 +1002,5 @@ document.querySelectorAll('[data-castle]').forEach(button=>{const index=castleAr
 $('castle-heal').querySelector('.panel-icon')?.replaceWith(castleEmblem(3));
 $('location-action').prepend(rpgIcon('gate'));
 
+forestCampArtwork.addEventListener('load',()=>{if(!motion)render();});
 </script></body></html>
