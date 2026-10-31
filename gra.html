@@ -366,8 +366,8 @@ function rewardVictory(state,enemy,rng=Math.random){if(!enemy||enemy.outcome!=='
 function canHunt(state){if(isSeaSerpentField(state))return false;return !!state.classId&&!!state.heroName&&!state.insideCastle&&(HABITATS[activeMap(state)]??[]).some(p=>p.x===state.x&&p.y===state.y);}
 function huntMonster(state,rng=Math.random){if(!canHunt(state))return null;ensureEncounters(state,rng);let existing=encounterAt(state);if(existing)return existing;const entry=pick(state.encounters.filter(e=>e.mapId===activeMap(state)),rng);if(!entry)return null;entry.x=state.x;entry.y=state.y;return encounterAt(state);}
 
-function defenseReduction(defense){return Math.min(100,Math.max(0,defense)*2);}
-function monsterDamage(enemy,defense=0,rng=Math.random){const min=enemy.minDamage??enemy.attack,max=enemy.maxDamage??(enemy.attack+3);const roll=min+Math.min(max-min,Math.max(0,Math.floor(rng()*(max-min+1))));return Math.max(0,Math.round(roll*(100-(defense<(enemy.defenseThreshold??0)?0:defenseReduction(defense)))/100));}
+function defenseReduction(defense,boss=false){return Math.min(100,Math.max(0,defense)*(boss?1:2));}
+function monsterDamage(enemy,defense=0,rng=Math.random){const min=enemy.minDamage??enemy.attack,max=enemy.maxDamage??(enemy.attack+3);const roll=min+Math.min(max-min,Math.max(0,Math.floor(rng()*(max-min+1))));return Math.max(0,Math.round(roll*(100-(defense<(enemy.defenseThreshold??0)?0:defenseReduction(defense,enemy.boss)))/100));}
 
 
 function isSeaSerpentField(s){return (s.mapId??'world')==='world'&&s.x===SEA_SERPENT_POSITION.x&&s.y===SEA_SERPENT_POSITION.y;}
@@ -377,7 +377,7 @@ function incomingElementDamage(s,damage,attack){const resistance=attack.damageTy
 function monsterStrike(s,member,round,rng=Math.random){
  const attack=member.type==='seaSerpent'?seaSerpentAttack(round):member;
  const defense=member.type==='seaSerpent'&&attack.damageType==='magic'?0:defensePower(s);
- return {name:attack.name,damage:incomingElementDamage(s,monsterDamage(attack,defense,rng),attack),damageType:attack.damageType,element:attack.element};
+ return {name:attack.name,damage:incomingElementDamage(s,monsterDamage({...attack,boss:member.boss},defense,rng),attack),damageType:attack.damageType,element:attack.element};
 }
 
 function battleMembers(battle){return battle?.members??(battle?[battle]:[]);}
@@ -626,7 +626,7 @@ function createStatsUI({getState,avatars,canOpen,onChange}) {
   return {open,close,render};
 }
 
-const seaSerpentArtwork=new Image();seaSerpentArtwork.src='assets/sea-serpent-map.png';seaSerpentArtwork.addEventListener('load',()=>{if(!motion)render();});
+const seaSerpentArtwork=new Image();seaSerpentArtwork.src='assets/sea-serpent-map-v2.png';seaSerpentArtwork.addEventListener('load',()=>{if(!motion)render();});
 const forestCampArtwork=new Image();forestCampArtwork.src='assets/whispering-camp.png';
 const $=id=>document.getElementById(id),canvas=$('map'),ctx=canvas.getContext('2d'),S=48;
 let state=initialState(),enemy=null,notice='',motion=null,queuedMove=null;
@@ -706,7 +706,7 @@ function fightView(){
   const bar=document.createElement('div');bar.className='battle-hp';const fill=document.createElement('i');fill.style.width=(100*member.hp/member.maxHp)+'%';bar.append(fill);
   const status=document.createElement('span');status.className='target-state';
   if(index===0){img.id='battle-enemy-avatar';name.id='battle-enemy-name';level.id='battle-enemy-category';hp.id='battle-enemy-hp-label';fill.id='battle-enemy-hp';}
-  card.append(side,img,name,level);if(member.boss){const trait=document.createElement('span');trait.className='enemy-damage-note';const next=seaSerpentAttack(enemy.round);trait.textContent='3 × Żarłoczna szarża · 250 fizycznych → Wir wodny · 300 magicznych (woda). Następny: '+next.name+'.';card.append(trait);}if(member.defenseThreshold){const trait=document.createElement('span');trait.className='enemy-damage-note';trait.textContent=(member.minDamage===member.maxDamage?member.minDamage:member.minDamage+'–'+member.maxDamage)+' obrażeń · redukcja od '+member.defenseThreshold+' obrony';card.append(trait);}card.append(hp,bar,status);card.onclick=()=>{if(selectBattleTarget(enemy,member.id))renderTargetSelection();};team.append(card);
+  card.append(side,img,name,level);if(member.boss){const trait=document.createElement('span');trait.className='enemy-damage-note';const next=seaSerpentAttack(enemy.round);trait.textContent='3 × Żarłoczna szarża · 250 fizycznych → Wir wodny · 300 magicznych (woda). Następny: '+next.name+'. Obrona przeciw bossom działa z 50% skutecznością (2 × więcej punktów do tej samej redukcji).';card.append(trait);}if(member.defenseThreshold){const trait=document.createElement('span');trait.className='enemy-damage-note';trait.textContent=(member.minDamage===member.maxDamage?member.minDamage:member.minDamage+'–'+member.maxDamage)+' obrażeń · redukcja od '+member.defenseThreshold+' obrony';card.append(trait);}card.append(hp,bar,status);card.onclick=()=>{if(selectBattleTarget(enemy,member.id))renderTargetSelection();};team.append(card);
  }
  renderTargetSelection();
  $('battle-round').textContent='Tura '+enemy.round;$('battle-outcome').textContent=active?'TWÓJ RUCH':'STARCIE ZAKOŃCZONE';
