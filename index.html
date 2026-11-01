@@ -60,11 +60,19 @@ button,a,input{touch-action:manipulation}dialog{max-height:calc(100vh - 24px);ma
 .expedition-scene.forest-scout{background-image:url('assets/forest-scout-expedition.jpg');background-size:cover;background-position:center}
 .expedition-scene::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#07140ccc,transparent 35%,transparent 50%,#07140cf2)}
 .expedition-scene h3{font:clamp(22px,4vw,32px) Georgia,serif;color:#f2e6bc;text-shadow:0 2px 6px #000;margin:0;padding:22px}
+/* Gold-edged wooden mission bar, with an inset blue time fill. */
 .expedition-progress-panel{padding:18px 22px;color:#f1e8ce;text-align:center}
-.expedition-progress-track{height:18px;overflow:hidden;border:1px solid #c2b477;border-radius:9px;background:#08150ed9;box-shadow:0 2px 10px #0008}
-.expedition-progress-fill{height:100%;width:0;background:linear-gradient(90deg,#527b3c,#c4d58b);box-shadow:0 0 12px #b3d68388;transition:width .35s linear}
-.expedition-progress-panel #expedition-progress{margin:12px 0 0;font-size:14px;font-variant-numeric:tabular-nums;color:#fff0ca;text-shadow:0 2px 4px #000}
-@media(max-width:480px){.expedition-scene{min-height:270px}.expedition-scene h3{padding:18px}.expedition-progress-panel{padding:16px}.expedition-progress-track{height:16px}}
+.expedition-progress-track{position:relative;isolation:isolate;box-sizing:border-box;height:54px;padding:6px;overflow:hidden;border:3px solid #b78038;border-radius:7px;background:repeating-linear-gradient(3deg,transparent 0 9px,#160a0470 10px 12px),linear-gradient(180deg,#291307,#76401e 38%,#3d1d0b 65%,#170b05);box-shadow:inset 0 0 0 1px #f5ce79,inset 0 0 0 4px #251006,0 2px 0 #110b06,0 4px 10px #0009}
+.expedition-progress-track::before,.expedition-progress-track::after{content:"";position:absolute;z-index:3;top:50%;width:5px;height:5px;border:1px solid #e0b666;background:#38200b;box-shadow:0 1px 2px #000;transform:translateY(-50%) rotate(45deg);pointer-events:none}
+.expedition-progress-track::before{left:1px}.expedition-progress-track::after{right:1px}
+.expedition-progress-fill{position:relative;height:100%;width:0;box-sizing:border-box;border-radius:2px;background:linear-gradient(180deg,#cbf6ff 0%,#66ceee 16%,#278fbe 48%,#55c3e7 78%,#1680ac 100%);box-shadow:inset 0 0 0 1px #b8efff88,0 0 10px #58d5ff99;transition:width 1s linear}
+.expedition-progress-fill::after{content:"";position:absolute;right:0;top:0;bottom:0;width:3px;background:#d8f9ff;box-shadow:0 0 9px 3px #6adaff;border-radius:2px}
+.expedition-progress-timer{position:absolute;z-index:2;inset:0;display:flex;align-items:center;justify-content:center;margin:0;padding:0 12px;color:#fff9e9;font:bold clamp(23px,5vw,30px)/1 Georgia,serif;font-variant-numeric:tabular-nums;letter-spacing:1px;text-shadow:0 2px 2px #000,1px 0 2px #000,-1px 0 2px #000;pointer-events:none}
+.expedition-progress-panel #expedition-progress{margin:10px 0 0;font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;color:#fff0ca;text-shadow:0 2px 4px #000}
+.expedition-progress-track.is-complete{border-color:#efd17a}.expedition-progress-track.is-complete .expedition-progress-fill{transition:none}
+@media(max-width:480px){.expedition-scene{min-height:270px}.expedition-scene h3{padding:18px}.expedition-progress-panel{padding:14px 10px}.expedition-progress-track{height:48px}}
+@media(prefers-reduced-motion:reduce){.expedition-progress-fill{transition:none}}
+
 .slot-ring{grid-column:3;grid-row:4}
 </style></head>
 <body><header><a class="brand" href="/">✧ GRAFAN <small>KRONIKI POGRANICZA</small></a><div class="chapter">ROZDZIAŁ I <span>Popiół pod korzeniami</span></div><div class="header-actions"><button id="save">Zapisz przygodę</button><button id="new-adventure">Nowa przygoda</button></div></header>
@@ -923,9 +931,10 @@ function expeditionsView(){
  const panel=document.createElement('div');panel.className='expedition-progress-panel';
  const track=document.createElement('div');track.className='expedition-progress-track';track.setAttribute('role','progressbar');track.setAttribute('aria-label','Postęp wyprawy');track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');
  const fill=document.createElement('div');fill.className='expedition-progress-fill';track.append(fill);
+ const countdown=document.createElement('span');countdown.className='expedition-progress-timer';countdown.setAttribute('aria-hidden','true');track.append(countdown);
  const p=document.createElement('p');p.id='expedition-progress';panel.append(track,p);scene.append(heading,panel);body.append(scene);
  const claim=document.createElement('button');claim.textContent='Zakończ wyprawę i zobacz podsumowanie';body.append(claim);renderExpeditionJournal(body,active);
- const tick=()=>{const progress=expeditionProgress(active,route);fill.style.width=progress.percent+'%';track.setAttribute('aria-valuenow',String(Math.floor(progress.percent)));track.setAttribute('aria-valuetext',Math.floor(progress.percent)+'% · '+progress.label);p.textContent=progress.label;claim.disabled=progress.left>0;};tick();const note=document.createElement('p');note.className='adventure-note';note.textContent=active.petName?'Pomocnik: '+active.petName+' · czas krótszy o '+active.timeReduction+'%.':'Wyprawa bez pomocy zwierzaka.';body.append(note);
+ const tick=()=>{const progress=expeditionProgress(active,route);fill.style.width=progress.percent+'%';track.setAttribute('aria-valuenow',String(Math.floor(progress.percent)));track.setAttribute('aria-valuetext',Math.floor(progress.percent)+'% · '+progress.label);countdown.textContent=formatExpeditionCountdown(progress.left);track.classList.toggle('is-complete',progress.left===0);p.textContent=progress.label;claim.disabled=progress.left>0;};tick();const note=document.createElement('p');note.className='adventure-note';note.textContent=active.petName?'Pomocnik: '+active.petName+' · czas krótszy o '+active.timeReduction+'%.':'Wyprawa bez pomocy zwierzaka.';body.append(note);
  const timer=setInterval(()=>{if(!p.isConnected||!$('dialog').open){clearInterval(timer);return;}tick();},1000);
  claim.onclick=()=>{if(state.level<route.minLevel||state.expedition!==active||Date.now()<active.endsAt)return;resolveExpeditionCombat(state,active);const loot=resolveExpeditionLoot(state,active);state.lastExpedition={...active,name:route.name,completedAt:Date.now(),equipmentTier:null,journal:expeditionJournal(active)};state.expedition=null;log('Ukończono wyprawę: '+route.name+'.'+(loot?.length?' Znaleziono: '+ITEMS[loot[0].id].name+'.':' Wyniki podróży zapisano w podsumowaniu.'));save();render();close();expeditionsView();};return;
  }
@@ -943,6 +952,7 @@ function expeditionsView(){
  };card.append(h,requirement,p,help);if(route.id==='forest-scout')renderExpeditionEnemy(card,'darkDryad');card.append(button);body.append(card);
  }
 }
+function formatExpeditionCountdown(left){return String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');}
 // Legacy saves derive the original duration from the helper captured at departure.
 function expeditionProgress(run,route,now=Date.now()){
  const fallbackDuration=expeditionDuration(route,{timeReduction:run.timeReduction??0});
